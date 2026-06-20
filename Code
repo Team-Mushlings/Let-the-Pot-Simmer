@@ -1,0 +1,343 @@
+TRAITS = {
+    "onion": "Savory",
+    "garlic": "Savory",
+    "beef": "Savory",
+    "chicken": "Savory",
+
+    "tomato": "Fresh",
+    "mint": "Fresh",
+    "parsley": "Fresh",
+
+    "potato": "Earthy",
+    "mushroom": "Earthy",
+
+    "carrot": "Sweet",
+    "corn": "Sweet",
+    "pumpkin": "Sweet",
+    "honey": "Sweet",
+
+    "pepper": "Spicy",
+    "chili": "Spicy",
+    "ginger": "Spicy",
+
+    "fish": "Oceanic",
+    "shrimp": "Oceanic",
+    "seaweed": "Oceanic",
+
+    "cream": "Rich",
+    "cheese": "Rich"
+}
+
+SPECIAL_RECIPES = [
+    ({"mushroom", "onion"}, "Wild Soup", 50),
+    ({"pumpkin", "honey"}, "Harvest Soup", 75),
+    ({"fish", "seaweed"}, "Sailor's Soup", 90),
+    ({"chili", "garlic", "beef"}, "Dragon Soup", 120)
+]
+
+ORDERS = [
+    ("Make a Rich soup.", ["Rich"]),
+    ("Make a Sweet soup.", ["Sweet"]),
+    ("Make an Oceanic soup.", ["Oceanic"]),
+
+    ("Make a Rich Fresh soup.", ["Rich", "Fresh"]),
+    ("Make an Oceanic Spicy soup.", ["Oceanic", "Spicy"]),
+    ("Make a Savory Earthy soup.", ["Savory", "Earthy"]),
+
+    ("Make a Rich Oceanic Spicy soup.", ["Rich", "Oceanic", "Spicy"]),
+    ("Make a Fresh Sweet Earthy soup.", ["Fresh", "Sweet", "Earthy"])
+]
+
+SHOP = {
+    "onion": 2,
+    "garlic": 3,
+    "beef": 10,
+    "chicken": 5,
+
+    "tomato": 3,
+    "mint": 3,
+    "parsley": 3,
+
+    "potato": 2,
+    "mushroom": 4,
+
+    "carrot": 2,
+    "corn": 3,
+    "pumpkin": 5,
+    "honey": 8,
+
+    "pepper": 3,
+    "chili": 4,
+    "ginger": 4,
+
+    "fish": 6,
+    "shrimp": 7,
+    "seaweed": 5,
+
+    "cream": 6,
+    "cheese": 7
+}
+coins = 25
+inventory = {}
+
+def check_special_recipe(ingredients):
+    ingredient_set = set(ingredients)
+
+    for recipe_ingredients, name, score in SPECIAL_RECIPES:
+        if recipe_ingredients.issubset(ingredient_set):
+            return {
+                "name": name,
+                "score": score,
+                "special": True
+            }
+
+    return None
+
+
+def generate_soup_name(ingredients):
+    trait_counts = {}
+    trait_order = []
+
+    for ingredient in ingredients:
+        trait = TRAITS[ingredient]
+
+        if trait not in trait_counts:
+            trait_counts[trait] = 0
+            trait_order.append(trait)
+
+        trait_counts[trait] += 1
+
+    repeated_traits = [
+        trait for trait in trait_order
+        if trait_counts[trait] >= 2
+    ]
+
+    other_traits = [
+        trait for trait in trait_order
+        if trait_counts[trait] < 2
+    ]
+
+    selected_traits = (repeated_traits + other_traits)[:3]
+
+    return " ".join(selected_traits) + " Soup"
+
+
+def calculate_score(ingredients):
+    trait_counts = {}
+
+    for ingredient in ingredients:
+        trait = TRAITS[ingredient]
+        trait_counts[trait] = trait_counts.get(trait, 0) + 1
+
+    unique_traits = len(trait_counts)
+
+    repeated_bonus_ingredients = sum(
+        count
+        for count in trait_counts.values()
+        if count >= 2
+    )
+
+    score = 10
+    score += unique_traits * 10
+    score += repeated_bonus_ingredients * 5
+
+    return score
+
+
+def make_soup(ingredients):
+    special = check_special_recipe(ingredients)
+
+    if special:
+        return special
+
+    return {
+        "name": generate_soup_name(ingredients),
+        "score": calculate_score(ingredients),
+        "special": False
+    }
+orders_completed = 0
+
+
+recipe_book = {
+    "Wild Soup": False,
+    "Harvest Soup": False,
+    "Sailor's Soup": False,
+    "Dragon Soup": False
+}
+
+def shop():
+    global coins
+
+    while True:
+
+        print("\n=== Shop ===")
+        print("Coins:", coins)
+
+        for ingredient, price in SHOP.items():
+            print("- " + ingredient + " (" + str(price) + " coins)")
+
+        print("\nType 'exit' to leave the shop.")
+
+        choice = input("\nBuy what? ").strip().lower()
+
+        if choice == "exit":
+            break
+
+        if choice not in SHOP:
+            print("Item not found.")
+            continue
+
+        cost = SHOP[choice]
+
+        if coins < cost:
+            print("Not enough coins!")
+            continue
+
+        coins -= cost
+        if choice not in inventory:
+            inventory[choice] = 0
+
+        inventory[choice] += 1
+
+        print("Bought " + choice + "!")
+        print("Coins left:", coins)
+
+
+
+def main():
+    ingredients = []
+
+    print(" ")
+    print("=== Let the Pot Simmer ===")
+    print("Type ingredients one at a time.")
+    print("Press Enter on a blank line to finish.\n")
+    
+    global orders_completed
+    global coins
+
+    current_order = ORDERS[min(orders_completed, len(ORDERS) - 1)]
+
+    print("\n=== Customer Order ===")
+    print(current_order[0])   
+
+    print(" ")
+    print("Coins:", coins)
+
+    print("\n=== Inventory ===")
+
+    for ingredient, amount in inventory.items():
+        if amount > 0:
+            print("-", ingredient, "x" + str(amount))
+
+    while True:
+        if len(ingredients) >= 6:
+            print("\nMaximum of 6 ingredients reached.")
+            break
+
+        ingredient = input("What ingredient do you want to add? ").strip().lower()
+
+        if ingredient == "":
+            break
+
+        if ingredient == "none":
+            break
+
+        if ingredient == "milou":
+            print(" ")
+            print("THE STUDENT HAS BECOME THE MASTER.")
+            coins += 100
+            print(" ")
+
+        if ingredient not in inventory or inventory[ingredient] <= 0:
+            print("You don't own that ingredient.")
+            continue
+               
+        if ingredient in ingredients:
+                    print(" ")
+                    print("You've already added that ingredient.")
+                    print(" ")
+                    continue
+
+        ingredients.append(ingredient)
+        inventory[ingredient] -= 1
+
+        print("\nCurrent ingredients:")
+        for item in ingredients:
+            print("-", item)
+
+        print("\nAdded " + ingredient + " (" + str(len(ingredients)) + "/6)")
+
+    if not ingredients:
+        print("No ingredients added.")
+        return
+
+    result = make_soup(ingredients)
+
+    print("\n--- Result ---")
+    print("Soup:", result["name"])
+    
+    print("Score:", result["score"])
+
+    traits_present = set()
+
+    for ingredient in ingredients:
+        traits_present.add(TRAITS[ingredient])
+
+    required_traits = current_order[1]
+
+    if all(trait in traits_present for trait in required_traits):
+        print("\n✓ Order completed!")
+        orders_completed += 1
+    
+        reward = result["score"] // 5
+        coins += reward
+    
+        print("You earned", reward, "coins!")
+        print("You now have", coins, "coins.")
+    
+    if result["special"]:
+        print("(Special Recipe)")
+    
+        special_bonus = result["score"] // 2
+        coins += special_bonus
+    
+        print("Special recipe bonus:", special_bonus, "coins!")
+    
+        if result["name"] in recipe_book:
+            recipe_book[result["name"]] = True
+
+        if result["name"] in recipe_book:
+            recipe_book[result["name"]] = True
+
+    print("\n=== Recipe Book ===")
+
+    for recipe, discovered in recipe_book.items():
+        if discovered:
+            print("✓ " + recipe)
+        else:
+            print("□ " + recipe)
+
+    return ingredients
+
+
+if __name__ == "__main__":
+    while True:
+
+        print("\nCoins:", coins)
+
+        visit_shop = input(
+            "\nVisit shop? (yes/no): "
+        ).lower()
+
+        if visit_shop == "yes":
+            shop()
+
+        main()
+
+        again = input("\nPlay again? (yes/no): ").lower()
+
+        if again != "yes":
+            print("Thanks for playing Let the Pot Simmer!")
+            break
+
+
